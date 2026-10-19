@@ -1,0 +1,26 @@
+---
+# Called by migrations.yml in a loop.
+# migration_path: absolute path of the .sql file on the storage VM.
+
+- name: "migration | Derive version name"
+  ansible.builtin.set_fact:
+    migration_version: "{{ migration_path | basename | regex_replace('\\.sql$', '') }}"
+
+- name: "migration | Apply {{ migration_version }}"
+  when: migration_version not in applied_migrations
+  block:
+    - name: "migration | Execute SQL — {{ migration_version }}"
+      ansible.builtin.command:
+        cmd: "psql -d {{ db_name }} -f {{ migration_path }}"
+      become_user: postgres
+      register: migration_exec
+      changed_when: true
+
+    - name: "migration | Record {{ migration_version }} in tracking table"
+      ansible.builtin.command:
+        cmd: >
+          psql -d {{ db_name }} -c
+          "INSERT INTO schema_migrations (version) VALUES ('{{ migration_version }}')
+           ON CONFLICT (version) DO NOTHING;"
+      become_user: postgres
+      changed_when: true

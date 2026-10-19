@@ -1,0 +1,63 @@
+---
+# Idempotent database and user provisioning via psql shell commands
+# Uses SELECT to check existence before CREATE — no community.postgresql dependency.
+
+- name: "storage/database | Check if application user exists"
+  ansible.builtin.command:
+    cmd: "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='{{ db_user }}';\""
+  become_user: postgres
+  register: pg_user_check
+  changed_when: false
+
+- name: "storage/database | Create application database user"
+  ansible.builtin.command:
+    cmd: "psql -c \"CREATE USER {{ db_user }} WITH LOGIN PASSWORD '{{ db_password }}';\""
+  become_user: postgres
+  when: pg_user_check.stdout.strip() != '1'
+  changed_when: true
+
+- name: "storage/database | Check if application database exists"
+  ansible.builtin.command:
+    cmd: "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='{{ db_name }}';\""
+  become_user: postgres
+  register: pg_db_check
+  changed_when: false
+
+- name: "storage/database | Create application database"
+  ansible.builtin.command:
+    cmd: "psql -c \"CREATE DATABASE {{ db_name }} OWNER {{ db_user }} ENCODING 'UTF8';\""
+  become_user: postgres
+  when: pg_db_check.stdout.strip() != '1'
+  changed_when: true
+
+- name: "storage/database | Check whether database privileges are already granted"
+  ansible.builtin.command:
+    cmd: >-
+      psql -tAc
+      "SELECT has_database_privilege('{{ db_user }}','{{ db_name }}','CONNECT')
+       AND has_database_privilege('{{ db_user }}','{{ db_name }}','CREATE');"
+  become_user: postgres
+  register: db_priv_check
+  changed_when: false
+
+- name: "storage/database | Grant all privileges on database to application user"
+  ansible.builtin.command:
+    cmd: "psql -c \"GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};\""
+  become_user: postgres
+  when: db_priv_check.stdout.strip() != 't'
+
+- name: "storage/database | Check whether schema privileges are already granted"
+  ansible.builtin.command:
+    cmd: >-
+      psql -d {{ db_name }} -tAc
+      "SELECT has_schema_privilege('{{ db_user }}','public','USAGE')
+       AND has_schema_privilege('{{ db_user }}','public','CREATE');"
+  become_user: postgres
+  register: schema_priv_check
+  changed_when: false
+
+- name: "storage/database | Grant schema privileges (PostgreSQL 15+ compatibility)"
+  ansible.builtin.command:
+    cmd: "psql -d {{ db_name }} -c \"GRANT ALL ON SCHEMA public TO {{ db_user }};\""
+  become_user: postgres
+  when: schema_priv_check.stdout.strip() != 't'

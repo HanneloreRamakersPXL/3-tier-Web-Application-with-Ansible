@@ -1,0 +1,9 @@
+---
+# ── Storage host configuration (AWS) ─────────────────────────────
+# Private IP with jump host via frontend bastion
+
+ansible_host: "REPLACE_WITH_STORAGE_PRIVATE_IP"
+ansible_ssh_common_args: >-
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_ed25519 -W %h:%p ec2-user@REPLACE_WITH_FRONTEND_PUBLIC_IP"

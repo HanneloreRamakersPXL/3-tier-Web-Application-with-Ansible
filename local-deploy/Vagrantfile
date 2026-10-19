@@ -1,0 +1,105 @@
+#
+# Vagrantfile to create PXL Labs (libvirt + AlmaLinux)
+#
+
+HOSTS_SYNC_COMMANDS = %w[up reload provision].freeze
+HOSTS_FILE_BLOCK = <<~HOSTS.freeze
+  # PXL_LAB_BEGIN
+  10.10.0.10 frontend.pxldemo.local frontend
+  10.10.0.20 backend.pxldemo.local backend
+  10.10.0.30 storage.pxldemo.local storage
+  # PXL_LAB_END
+HOSTS
+
+HOSTS_SYNC_COMMAND = <<~SHELL.freeze
+  tmp_hosts="$(mktemp)"
+  trap 'rm -f "$tmp_hosts"' EXIT
+
+  awk '
+    BEGIN { skip = 0 }
+    /^# PXL_LAB_BEGIN$/ { skip = 1; next }
+    /^# PXL_LAB_END$/ { skip = 0; next }
+    skip == 0 { print }
+  ' /etc/hosts > "$tmp_hosts"
+
+  while tail -n 1 "$tmp_hosts" | grep -q '^$'; do
+    sed -i '$d' "$tmp_hosts"
+  done
+
+  cat <<'EOF' >> "$tmp_hosts"
+
+#{HOSTS_FILE_BLOCK}
+EOF
+
+  cat "$tmp_hosts" > /etc/hosts
+SHELL
+
+# --------------------------------
+# Update host /etc/hosts (refresh managed block on Vagrant lifecycle commands)
+# Runs in the main Vagrant process which has the user's TTY
+# --------------------------------
+if HOSTS_SYNC_COMMANDS.include?(ARGV[0])
+  system("sudo", "sh", "-c", HOSTS_SYNC_COMMAND)
+end
+
+MEMORY = 2048
+CPUS   = 2
+
+Vagrant.configure("2") do |config|
+
+  # ----- Base Box (hard pinned) -----
+  config.vm.box = "generic/alma9"
+  config.vm.box_version = "4.3.12"
+
+  # Disable default /vagrant sync folder
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # SSH config - reuse insecure key
+  config.ssh.forward_agent = true
+  config.ssh.insert_key = false
+  config.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
+
+  # --------------------------------
+  # Libvirt Provider Configuration
+  # --------------------------------
+  config.vm.provider :libvirt do |lv|
+    lv.memory = MEMORY
+    lv.cpus   = CPUS
+    lv.driver = "kvm"
+
+
+  end
+
+  # -------------------------
+  # Guest /etc/hosts 
+  # -------------------------
+  # -------------------------
+  # Frontend
+  # -------------------------
+  config.vm.define "frontend" do |server|
+    server.vm.hostname = "frontend.pxldemo.local"
+    server.vm.network "forwarded_port", guest: 8080, host: 8080
+    server.vm.network "private_network", ip: "10.10.0.10"
+    server.vm.provision "shell", inline: HOSTS_SYNC_COMMAND, run: "always"
+  end
+
+  # -------------------------
+  # Backend
+  # -------------------------
+  config.vm.define "backend" do |server|
+    server.vm.hostname = "backend.pxldemo.local"
+    server.vm.network "private_network", ip: "10.10.0.20"
+    server.vm.provision "shell", inline: HOSTS_SYNC_COMMAND, run: "always"
+  end
+
+  # -------------------------
+  # Storage
+  # -------------------------
+  config.vm.define "storage" do |server|
+    server.vm.hostname = "storage.pxldemo.local"
+    server.vm.network "private_network", ip: "10.10.0.30"
+    server.vm.provision "shell", inline: HOSTS_SYNC_COMMAND, run: "always"
+  end
+
+  config.vm.post_up_message = "PXL Lab build complete."
+end

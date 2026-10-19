@@ -1,0 +1,14 @@
+---
+- name: "backend/configure | Deploy .env from Vault-backed template"
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: "{{ backend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0640"
+    backup: true
+  register: env_template
+
+- name: "backend/configure | Set env_changed fact"
+  ansible.builtin.set_fact:
+    env_changed: "{{ env_template.changed }}"

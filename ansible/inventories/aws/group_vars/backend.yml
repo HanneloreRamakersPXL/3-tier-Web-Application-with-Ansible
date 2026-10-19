@@ -1,0 +1,9 @@
+# ── Backend-tier variables (AWS) ─────────────────────────────
+
+backend_service_name: cinevote-backend
+backend_node_env:     production
+backend_log_dir:      /var/log/cinevote
+backend_service_path: /etc/systemd/system/cinevote-backend.service
+
+# rsync needs a wrapper script to reach the private backend IP via the bastion
+backend_use_bastion: true

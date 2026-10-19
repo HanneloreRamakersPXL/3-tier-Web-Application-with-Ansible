@@ -1,0 +1,190 @@
+/* ── My Dashboard ─────────────────────────────────────────────────────── */
+
+.my-dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.my-dashboard__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 40px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.my-dashboard__header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+/* ── Group List ───────────────────────────────────────────────────────── */
+.my-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Group Card ───────────────────────────────────────────────────────── */
+.my-group-card {
+  padding: 24px 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.my-group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(124, 58, 237, 0.28);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.my-group-card--skeleton {
+  pointer-events: none;
+}
+
+.my-group-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.my-group-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.my-group-card__name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.my-group-card__role {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.my-group-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.my-group-card__members,
+.my-group-card__round {
+  font-size: 0.85rem;
+  color: rgba(241, 245, 249, 0.45);
+}
+
+.my-group-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Empty State ──────────────────────────────────────────────────────── */
+.my-dashboard__empty {
+  text-align: center;
+  padding: 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.my-dashboard__empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 4px;
+}
+
+.my-dashboard__empty h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(241, 245, 249, 0.85);
+  letter-spacing: -0.02em;
+}
+
+.my-dashboard__empty p {
+  font-size: 0.95rem;
+  color: rgba(241, 245, 249, 0.4);
+  max-width: 360px;
+  line-height: 1.65;
+  margin-bottom: 8px;
+}
+
+.my-dashboard__empty-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* ── Delete Confirmation ──────────────────────────────────────────────── */
+.my-group-card__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.07);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 10px;
+}
+
+.my-group-card__confirm-text {
+  font-size: 0.875rem;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.my-group-card__confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.my-group-card__delete-error {
+  font-size: 0.8rem;
+  color: #f87171;
+  margin-bottom: 8px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .my-dashboard__header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .my-group-card {
+    padding: 20px;
+  }
+
+  .my-group-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

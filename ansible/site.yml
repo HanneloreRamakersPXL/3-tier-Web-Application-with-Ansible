@@ -1,0 +1,85 @@
+---
+- name: "Deploy CineVote — Storage Tier (PostgreSQL)"
+  hosts: storage
+  become: true
+  gather_facts: true
+  tags: [storage]
+  roles:
+    - role: common
+    - role: storage
+
+- name: "Deploy CineVote — Backend Tier (Node.js)"
+  hosts: backend
+  become: true
+  gather_facts: true
+  tags: [backend]
+  roles:
+    - role: common
+    - role: backend
+
+- name: "Deploy CineVote — Frontend Tier (Nginx + React SPA)"
+  hosts: frontend
+  become: true
+  gather_facts: true
+  tags: [frontend]
+  roles:
+    - role: common
+    - role: frontend
+
+- name: "Post-Deployment Health Verification"
+  hosts: all
+  gather_facts: false
+  tags: [health, storage, backend, frontend]
+
+  tasks:
+    - name: Verify storage port is reachable
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[groups['storage'][0]]['ansible_host'] }}"
+        port: "{{ db_port }}"
+        timeout: 30
+        state: started
+      run_once: true
+      delegate_to: "{{ groups['backend'][0] }}"
+      become: false
+      tags: [health, storage]
+
+    - name: Verify backend health endpoint responds HTTP 200
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ backend_port }}/api/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: backend_health
+      retries: 12
+      delay: 5
+      until: backend_health.status == 200
+      run_once: true
+      delegate_to: "{{ groups['backend'][0] }}"
+      become: false
+      tags: [health, backend]
+
+    - name: Verify frontend serves HTTP 200
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ frontend_port }}/"
+        method: GET
+        status_code: 200
+      register: frontend_health
+      retries: 6
+      delay: 5
+      until: frontend_health.status == 200
+      run_once: true
+      delegate_to: "{{ groups['frontend'][0] }}"
+      become: false
+      tags: [health, frontend]
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "Frontend : http://{{ hostvars[groups['frontend'][0]]['ansible_host'] }}:{{ frontend_port }}"
+          - "Backend  : http://{{ hostvars[groups['backend'][0]]['ansible_host'] }}:{{ backend_port }}"
+          - "Storage  : {{ hostvars[groups['storage'][0]]['ansible_host'] }}:{{ db_port }}"
+          - "DB       : {{ backend_health.json.db }}"
+          - "API ver  : {{ backend_health.json.version }}"
+          - "Uptime   : {{ backend_health.json.uptime }}s"
+      run_once: true
+      tags: [health]

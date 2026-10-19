@@ -1,0 +1,39 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# CineVote — Local Vagrant Deployment Entry Point
+#
+# All Ansible logic lives in ../ansible/.
+#
+# HOW TO DEPLOY
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Start the Vagrant VMs (from this directory):
+#      vagrant up
+#
+# 2. Run the full deployment (from the ansible/ directory):
+#      cd ../ansible
+#      ansible-galaxy collection install -r requirements.yml   # first time only
+#      ansible-playbook -i inventories/local/hosts.yml site.yml
+#
+# TARGETED REDEPLOYS
+# ─────────────────────────────────────────────────────────────────────────────
+#   Storage only:  ansible-playbook -i inventories/local/hosts.yml site.yml --tags storage
+#   Backend only:  ansible-playbook -i inventories/local/hosts.yml site.yml --tags backend
+#   Frontend only: ansible-playbook -i inventories/local/hosts.yml site.yml --tags frontend
+#
+# HEALTH CHECKS ONLY
+# ─────────────────────────────────────────────────────────────────────────────
+#   ansible-playbook -i inventories/local/hosts.yml site.yml --tags health
+#
+# See ../ansible/README.md or ../PROJECT_README.md for full documentation.
+# ─────────────────────────────────────────────────────────────────────────────
+- name: "Redirect — run Ansible from the ansible/ directory"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Remind user to run from ansible/ directory
+      ansible.builtin.debug:
+        msg:
+          - "Run Ansible from the ansible/ directory, not from local-deploy/:"
+          - "  cd ../ansible"
+          - "  ansible-playbook -i inventories/local/hosts.yml site.yml"

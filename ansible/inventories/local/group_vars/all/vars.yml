@@ -1,0 +1,49 @@
+---
+# ─────────────────────────────────────────────────────────────
+# CineVote — Shared variables (all hosts)
+# Secrets reference vault.yml; NO plaintext secrets here.
+# ─────────────────────────────────────────────────────────────
+
+# ── Application identity ──────────────────────────────────────
+app_name:  cinevote
+app_user:  cinevote
+app_group: cinevote
+
+# ── Network topology (mirrors local-deploy/Vagrantfile) ───────
+frontend_ip: "10.10.0.10"
+backend_ip:  "10.10.0.20"
+storage_ip:  "10.10.0.30"
+
+# ── Service ports ─────────────────────────────────────────────
+frontend_port: 8080   # Nginx HTTP (forwarded host:8080 → guest:8080)
+backend_port:  3000   # Node.js Express
+db_port:       5432   # PostgreSQL
+
+# ── Database configuration (non-secret) ──────────────────────
+db_name: cinevote
+db_user: cinevote
+db_host: "{{ storage_ip }}"
+
+# ── Secret references (values live in vault.yml) ─────────────
+db_password: "{{ vault_db_password }}"
+jwt_secret:  "{{ vault_jwt_secret }}"
+hmac_secret: "{{ vault_hmac_secret }}"
+tmdb_api_key: "{{ vault_tmdb_api_key }}"
+
+# ── Derived URLs ──────────────────────────────────────────────
+# CORS origin: the browser-facing URL (frontend Nginx)
+cors_origin: "http://{{ frontend_ip }}:{{ frontend_port }}"
+
+# ── Application filesystem paths ──────────────────────────────
+app_base_dir:      /opt/cinevote
+backend_dir:       "{{ app_base_dir }}/backend"
+storage_src_dir:   "{{ app_base_dir }}/storage"
+migrations_dir:    "{{ app_base_dir }}/migrations"
+frontend_webroot:  /usr/share/nginx/cinevote
+
+# ── Runtime ───────────────────────────────────────────────────
+nodejs_major_version: "20"
+nginx_user: nginx
+
+# ── Logging (EXTRA3) ──────────────────────────────────────────
+cinevote_log_dir: /var/log/cinevote

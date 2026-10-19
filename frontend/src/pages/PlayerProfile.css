@@ -1,0 +1,246 @@
+.player-profile {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.player-profile-loading,
+.player-profile-error {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-muted, #888);
+}
+
+.player-profile__header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border, #333);
+}
+
+.player-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.player-info {
+  min-width: 0;
+}
+
+.player-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+}
+
+.player-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.member-role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, #333);
+  color: var(--color-muted, #aaa);
+}
+
+.member-role-badge.admin {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.player-group-link {
+  color: var(--color-accent, #a78bfa);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.player-group-link:hover {
+  text-decoration: underline;
+}
+
+.player-joined {
+  font-size: 0.85rem;
+  color: var(--color-muted, #888);
+  margin: 0;
+}
+
+.player-watched-section {
+  margin-top: 0.5rem;
+}
+
+.player-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.player-watched-count {
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, #333);
+  border-radius: 20px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-muted, #aaa);
+  font-weight: 400;
+}
+
+.player-empty {
+  color: var(--color-muted, #888);
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.player-watched-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.watched-movie-card {
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, #333);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.watched-movie-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.watched-movie-poster-wrap {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: #111;
+}
+
+.watched-movie-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.watched-movie-poster--empty {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e1e2e, #2d2d3e);
+}
+
+.watched-movie-round {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.watched-movie-info {
+  padding: 0.75rem;
+}
+
+.watched-movie-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watched-movie-year {
+  font-size: 0.8rem;
+  color: var(--color-muted, #888);
+  margin: 0 0 0.4rem;
+}
+
+.watched-movie-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.watched-movie-date {
+  font-size: 0.75rem;
+  color: #6ee7b7;
+  margin: 0;
+}
+
+.watched-movie-rating {
+  margin-bottom: 0.4rem;
+}
+
+.watched-star-row {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.star {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.star--filled {
+  color: #f59e0b;
+}
+
+.star--empty {
+  color: var(--color-border, #444);
+}
+
+.watched-rating-value {
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-muted, #888);
+}
+
+.watched-no-rating {
+  font-size: 0.8rem;
+  color: var(--color-muted, #666);
+  font-style: italic;
+}
+
+.watched-movie-group {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-accent, #a78bfa);
+  text-decoration: none;
+  margin-bottom: 0.2rem;
+}
+
+.watched-movie-group:hover {
+  text-decoration: underline;
+}

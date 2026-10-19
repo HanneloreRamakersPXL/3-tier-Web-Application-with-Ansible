@@ -1,0 +1,66 @@
+---
+# ── Common baseline applied to every tier VM ──────────────────
+
+- name: "common | Refresh DNF cache"
+  ansible.builtin.dnf:
+    update_cache: true
+
+- name: "common | Install baseline packages"
+  ansible.builtin.dnf:
+    name: "{{ common_packages }}"
+    state: present
+    allowerasing: true
+
+- name: "common | Ensure openssh packages are installed"
+  ansible.builtin.dnf:
+    name:
+      - openssh
+      - openssh-server
+      - openssh-clients
+    state: present
+
+- name: "common | Set system timezone to {{ system_timezone }}"
+  community.general.timezone:
+    name: "{{ system_timezone }}"
+
+- name: "common | Ensure firewalld is started and enabled"
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: "common | Ensure SSH is permanently allowed in firewall"
+  ansible.posix.firewalld:
+    service: ssh
+    state: enabled
+    permanent: true
+    immediate: true
+    zone: public
+
+- name: "common | Ensure sshd systemd override directory exists"
+  ansible.builtin.file:
+    path: /etc/systemd/system/sshd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: "common | Protect sshd from OOM killer and ensure auto-restart"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/sshd.service.d/override.conf
+    content: |
+      [Service]
+      OOMScoreAdjust=-900
+      Restart=always
+      RestartSec=5
+    owner: root
+    group: root
+    mode: "0644"
+  register: sshd_override
+
+- name: "common | Reload systemd and restart sshd if override changed"
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+    daemon_reload: true
+  when: sshd_override.changed

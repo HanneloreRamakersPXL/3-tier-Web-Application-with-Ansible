@@ -1,0 +1,11 @@
+---
+# ── Storage-tier variables ────────────────────────────────────
+# Applied only to hosts in the [storage] group
+
+pg_version:         14
+pg_service_name:    postgresql-14
+pg_data_dir:        /var/lib/pgsql/14/data
+
+# Tuning (safe defaults for a 2 GB VM)
+pg_max_connections: 100
+pg_shared_buffers:  256MB

@@ -1,0 +1,26 @@
+---
+- name: "backend/service | Deploy systemd unit from template"
+  ansible.builtin.template:
+    src: cinevote-backend.service.j2
+    dest: "{{ backend_service_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart cinevote-backend
+
+- name: "backend/service | Enable and start cinevote-backend service"
+  ansible.builtin.systemd:
+    name: "{{ backend_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: "backend/service | Restart service if code or config changed"
+  ansible.builtin.systemd:
+    name: "{{ backend_service_name }}"
+    state: restarted
+    daemon_reload: true
+  when: (backend_deploy_needed | default(false)) or (env_changed | default(false))
+
+- name: "backend/service | Flush pending handlers so service is current before health check"
+  ansible.builtin.meta: flush_handlers

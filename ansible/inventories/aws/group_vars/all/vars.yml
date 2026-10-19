@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────
+# CineVote — AWS shared variables
+# Fill in the three IP addresses from provisioned_vars.yml.
+# ─────────────────────────────────────────────────────────────
+
+# ── Application identity ──────────────────────────────────────
+app_name:  cinevote
+app_user:  cinevote
+app_group: cinevote
+
+# ── Network topology — fill in after provisioning ─────────────
+# Run ./provisioning/provision_pe2_nat_bastion.sh and copy the IPs from
+# the generated provisioned_vars.yml file (repo root, gitignored).
+frontend_ip: "REPLACE_WITH_FRONTEND_PUBLIC_IP"   # public IP — EC2 frontend
+backend_ip:  "REPLACE_WITH_BACKEND_PRIVATE_IP"   # private IP — EC2 backend
+storage_ip:  "REPLACE_WITH_STORAGE_PRIVATE_IP"   # private IP — EC2 storage
+
+# ── Service ports ─────────────────────────────────────────────
+# The provisioning script opens port 80 on the frontend security group.
+frontend_port: 80
+backend_port:  3000
+db_port:       5432
+
+# ── Database configuration ────────────────────────────────────
+db_name: cinevote
+db_user: cinevote
+db_host: "{{ storage_ip }}"
+
+# ── Secret references (values live in vault.yml) ─────────────
+db_password:  "{{ vault_db_password }}"
+jwt_secret:   "{{ vault_jwt_secret }}"
+hmac_secret:  "{{ vault_hmac_secret }}"
+tmdb_api_key: "{{ vault_tmdb_api_key }}"
+
+# ── Derived URLs ──────────────────────────────────────────────
+cors_origin: "http://{{ frontend_ip }}"
+
+# ── Application filesystem paths ──────────────────────────────
+app_base_dir:     /opt/cinevote
+backend_dir:      "{{ app_base_dir }}/backend"
+storage_src_dir:  "{{ app_base_dir }}/storage"
+migrations_dir:   "{{ app_base_dir }}/migrations"
+frontend_webroot: /usr/share/nginx/cinevote
+
+# ── Runtime ───────────────────────────────────────────────────
+nodejs_major_version: "20"
+nginx_user: nginx
+
+# ── Logging (EXTRA3) ──────────────────────────────────────────
+cinevote_log_dir: /var/log/cinevote

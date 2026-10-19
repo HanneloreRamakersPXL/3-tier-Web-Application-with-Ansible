@@ -1,0 +1,7 @@
+---
+# Storage role defaults — override in group_vars/storage.yml
+pg_version:         14
+pg_service_name:    postgresql-14
+pg_data_dir:        /var/lib/pgsql/14/data
+pg_max_connections: 100
+pg_shared_buffers:  256MB

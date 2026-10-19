@@ -1,0 +1,27 @@
+# PostgreSQL Client Authentication Configuration
+# Managed by Ansible — do not edit manually
+# Template: roles/storage/templates/pg_hba.conf.j2
+#
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# ── Unix domain socket connections ───────────────────────────
+# postgres system user uses peer (no password, OS identity)
+local   all             postgres                                peer
+local   all             all                                     peer
+
+# ── IPv4 loopback connections ─────────────────────────────────
+# Admin access from localhost
+host    all             postgres        127.0.0.1/32            md5
+host    all             all             127.0.0.1/32            md5
+
+# ── IPv6 loopback connections ─────────────────────────────────
+host    all             all             ::1/128                 md5
+
+# ── CineVote application access ───────────────────────────────
+# Allows the backend VM to connect to the cinevote database
+host    {{ db_name }}   {{ db_user }}   {{ backend_ip }}/32    md5
+
+# ── Replication (disabled) ────────────────────────────────────
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            md5
+host    replication     all             ::1/128                 md5

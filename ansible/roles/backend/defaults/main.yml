@@ -1,0 +1,7 @@
+---
+# Backend role defaults — override in group_vars/backend.yml
+backend_service_name: cinevote-backend
+backend_node_env:     production
+backend_log_dir:      /var/log/cinevote
+backend_service_path: /etc/systemd/system/cinevote-backend.service
+nodejs_major_version: "20"

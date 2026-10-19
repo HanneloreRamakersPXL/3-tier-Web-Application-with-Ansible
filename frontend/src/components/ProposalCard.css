@@ -1,0 +1,110 @@
+/* ── Proposal Card (Netflix-style poster card) ───────────────────────── */
+
+.proposal-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+  position: relative;
+}
+
+.proposal-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(124, 58, 237, 0.2);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+/* Poster image */
+.proposal-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+  background: linear-gradient(160deg, #1e1b4b, #312e81);
+}
+
+/* Pixel scanline on hover */
+.proposal-card:hover .proposal-poster {
+  filter: brightness(1.05);
+}
+
+/* Content area */
+.proposal-content {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.proposal-content h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.proposal-content .release-date {
+  font-size: 0.75rem;
+  color: rgba(241, 245, 249, 0.4);
+  font-weight: 500;
+}
+
+.proposal-content .overview {
+  font-size: 0.78rem;
+  color: rgba(241, 245, 249, 0.5);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Rating section */
+.rating-section {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.average-rating {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.rating-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: -0.02em;
+}
+
+.rating-count {
+  font-size: 0.75rem;
+  color: rgba(241, 245, 249, 0.4);
+}
+
+/* Details link */
+.details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a78bfa;
+  text-decoration: none;
+  margin-top: 4px;
+  transition: color 0.15s;
+}
+
+.details-link:hover { color: #c4b5fd; }

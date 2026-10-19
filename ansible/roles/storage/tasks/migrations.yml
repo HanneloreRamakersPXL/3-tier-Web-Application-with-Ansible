@@ -1,0 +1,91 @@
+---
+- name: "storage/migrations | Create migrations tracking directory on storage VM"
+  ansible.builtin.file:
+    path: "{{ migrations_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+
+- name: "storage/migrations | Copy migration SQL files to storage VM"
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../storage/migrations/"
+    dest: "{{ migrations_dir }}/"
+    owner: postgres
+    group: postgres
+    mode: "0644"
+
+- name: "storage/migrations | Check whether schema_migrations tracking table exists"
+  ansible.builtin.command:
+    cmd: >-
+      psql -d {{ db_name }} -tAc
+      "SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_schema='public' AND table_name='schema_migrations'
+       );"
+  become_user: postgres
+  register: schema_migrations_exists
+  changed_when: false
+
+- name: "storage/migrations | Create schema_migrations tracking table"
+  ansible.builtin.command:
+    cmd: >-
+      psql -d {{ db_name }} -c
+      "CREATE TABLE schema_migrations (
+         version    VARCHAR(100) PRIMARY KEY,
+         applied_at TIMESTAMPTZ  DEFAULT NOW()
+       );"
+  become_user: postgres
+  when: schema_migrations_exists.stdout.strip() != 't'
+
+- name: "storage/migrations | Discover migration files on storage VM"
+  ansible.builtin.find:
+    paths: "{{ migrations_dir }}"
+    patterns: "*.sql"
+    file_type: file
+  register: found_migrations
+
+- name: "storage/migrations | Retrieve list of already-applied migrations"
+  ansible.builtin.command:
+    cmd: "psql -d {{ db_name }} -tAc 'SELECT version FROM schema_migrations ORDER BY version;'"
+  become_user: postgres
+  register: applied_migrations_raw
+  changed_when: false
+
+- name: "storage/migrations | Build applied-migrations fact"
+  ansible.builtin.set_fact:
+    applied_migrations: "{{ applied_migrations_raw.stdout_lines | map('trim') | select | list }}"
+
+- name: "storage/migrations | Apply pending migrations"
+  ansible.builtin.include_tasks: apply_migration.yml
+  loop: "{{ found_migrations.files | map(attribute='path') | sort | list }}"
+  loop_control:
+    loop_var: migration_path
+    label: "{{ migration_path | basename }}"
+
+- name: "storage/migrations | Check whether any public tables are owned by a different user"
+  ansible.builtin.command:
+    cmd: >-
+      psql -d {{ db_name }} -tAc
+      "SELECT COUNT(*) FROM pg_tables
+       WHERE schemaname='public' AND tableowner != '{{ db_user }}';"
+  become_user: postgres
+  register: tables_not_owned_by_app_user
+  changed_when: false
+
+- name: "storage/migrations | Transfer ownership of all user tables to {{ db_user }}"
+  ansible.builtin.command:
+    cmd: >-
+      psql -d {{ db_name }} -c
+      "DO $$
+       DECLARE r RECORD;
+       BEGIN
+         FOR r IN
+           SELECT tablename FROM pg_tables
+           WHERE schemaname = 'public' AND tableowner != '{{ db_user }}'
+         LOOP
+           EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO {{ db_user }}';
+         END LOOP;
+       END $$;"
+  become_user: postgres
+  when: tables_not_owned_by_app_user.stdout | trim | int > 0

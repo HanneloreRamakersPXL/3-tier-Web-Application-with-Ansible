@@ -1,0 +1,8 @@
+---
+# Ansible collection dependencies for CineVote deployment
+# Install with: ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: ansible.posix
+    version: ">=1.5.0"
+  - name: community.general
+    version: ">=7.0.0"

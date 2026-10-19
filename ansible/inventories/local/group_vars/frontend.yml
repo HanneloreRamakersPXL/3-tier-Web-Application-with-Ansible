@@ -1,0 +1,9 @@
+---
+# ── Frontend-tier variables ───────────────────────────────────
+# Applied only to hosts in the [frontend] group
+
+# Nginx config drop-in path
+nginx_conf_path: /etc/nginx/conf.d/cinevote.conf
+
+# Client-facing application URL (used in README / health check output)
+app_url: "http://{{ frontend_ip }}:{{ frontend_port }}"

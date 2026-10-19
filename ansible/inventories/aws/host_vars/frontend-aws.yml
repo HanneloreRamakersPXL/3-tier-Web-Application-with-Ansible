@@ -1,0 +1,7 @@
+---
+# ── Frontend host configuration (AWS) ────────────────────────────
+
+ansible_host: "REPLACE_WITH_FRONTEND_PUBLIC_IP"
+ansible_ssh_common_args: >-
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null

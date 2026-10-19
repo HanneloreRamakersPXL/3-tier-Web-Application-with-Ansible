@@ -1,0 +1,9 @@
+# ── Storage-tier variables (AWS) ─────────────────────────────
+# t3.micro = 1 GiB RAM. pg_shared_buffers reduced from the
+# 256MB Vagrant default to avoid OOM kills on the smaller instance.
+
+pg_version:         15
+pg_service_name:    postgresql
+pg_data_dir:        /var/lib/pgsql/data
+pg_max_connections: 100
+pg_shared_buffers:  128MB

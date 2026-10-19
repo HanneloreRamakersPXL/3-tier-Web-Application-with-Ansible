@@ -1,0 +1,17 @@
+---
+# Storage role — orchestrate sub-task files in deployment order
+
+- name: "storage | Install PostgreSQL {{ pg_version }}"
+  ansible.builtin.import_tasks: install.yml
+
+- name: "storage | Configure PostgreSQL"
+  ansible.builtin.import_tasks: configure.yml
+
+- name: "storage | Provision database and user"
+  ansible.builtin.import_tasks: database.yml
+
+- name: "storage | Run schema migrations"
+  ansible.builtin.import_tasks: migrations.yml
+
+- name: "storage | Verify storage health"
+  ansible.builtin.import_tasks: healthcheck.yml

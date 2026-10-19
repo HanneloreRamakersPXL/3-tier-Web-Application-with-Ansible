@@ -1,0 +1,75 @@
+---
+- name: "backend/install | Check if NodeSource repo is already configured"
+  ansible.builtin.command:
+    cmd: "dnf repolist enabled | grep -q 'nodesource'"
+  register: nodesource_repo
+  failed_when: false
+  changed_when: false
+
+- name: "backend/install | Add NodeSource Node.js {{ nodejs_major_version }} repository"
+  ansible.builtin.shell:
+    cmd: "curl -fsSL https://rpm.nodesource.com/setup_{{ nodejs_major_version }}.x | bash -"
+  when: nodesource_repo.rc != 0
+
+- name: "backend/install | Install Node.js"
+  ansible.builtin.dnf:
+    name: nodejs
+    state: present
+
+- name: "backend/install | Install build toolchain (for native npm modules)"
+  ansible.builtin.dnf:
+    name:
+      - gcc-c++
+      - make
+      - python3
+    state: present
+
+- name: "backend/install | Create application group"
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    system: true
+    state: present
+
+- name: "backend/install | Create application user"
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    system: true
+    shell: /sbin/nologin
+    home: "{{ app_base_dir }}"
+    create_home: false
+    state: present
+
+- name: "backend/install | Create application directory tree"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ app_group }}"
+    mode: "0755"
+  loop:
+    - "{{ app_base_dir }}"
+    - "{{ backend_dir }}"
+    - "{{ storage_src_dir }}"
+
+- name: "backend/install | Create log directory (writable by app user)"
+  ansible.builtin.file:
+    path: "{{ backend_log_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0750"
+
+- name: "backend/install | Open backend port {{ backend_port }} in firewall"
+  ansible.posix.firewalld:
+    port: "{{ backend_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: "backend/install | Allow Node.js port {{ backend_port }} in SELinux"
+  community.general.seport:
+    ports: "{{ backend_port }}"
+    proto: tcp
+    setype: http_port_t
+    state: present

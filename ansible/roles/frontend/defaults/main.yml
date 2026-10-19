@@ -1,0 +1,5 @@
+---
+# Frontend role defaults — override in group_vars/frontend.yml
+nginx_conf_path:  /etc/nginx/conf.d/cinevote.conf
+frontend_webroot: /usr/share/nginx/cinevote
+nginx_user:       nginx

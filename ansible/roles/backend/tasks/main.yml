@@ -1,0 +1,17 @@
+---
+# Backend role — deploy Node.js API in deployment order
+
+- name: "backend | Install Node.js and build dependencies"
+  ansible.builtin.import_tasks: install.yml
+
+- name: "backend | Sync and build application source"
+  ansible.builtin.import_tasks: deploy.yml
+
+- name: "backend | Write environment configuration"
+  ansible.builtin.import_tasks: configure.yml
+
+- name: "backend | Manage systemd service"
+  ansible.builtin.import_tasks: service.yml
+
+- name: "backend | Verify backend health"
+  ansible.builtin.import_tasks: healthcheck.yml

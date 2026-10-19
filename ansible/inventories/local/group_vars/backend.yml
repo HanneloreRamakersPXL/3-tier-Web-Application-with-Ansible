@@ -1,0 +1,13 @@
+---
+# ── Backend-tier variables ────────────────────────────────────
+# Applied only to hosts in the [backend] group
+
+backend_service_name: cinevote-backend
+backend_node_env:     production
+backend_log_dir:      /var/log/cinevote
+
+# systemd service file path
+backend_service_path: /etc/systemd/system/cinevote-backend.service
+
+# No proxy needed for local Vagrant (direct SSH)
+backend_use_bastion: false

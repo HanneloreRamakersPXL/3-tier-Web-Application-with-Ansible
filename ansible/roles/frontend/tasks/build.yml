@@ -1,0 +1,71 @@
+---
+- name: "frontend/build | Verify Node.js is installed on control machine"
+  ansible.builtin.command:
+    cmd: node --version
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  register: local_node_check
+  failed_when: local_node_check.rc != 0
+
+- name: "frontend/build | Hash frontend source files"
+  ansible.builtin.shell:
+    cmd: >-
+      find . -type f
+      -not -path './dist/*'
+      -not -path './node_modules/*'
+      | sort | xargs sha256sum | sha256sum | awk '{print $1}'
+    chdir: "{{ playbook_dir }}/../frontend"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  register: frontend_src_hash
+
+- name: "frontend/build | Read previous build hash"
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/../frontend/dist/.build_hash"
+  delegate_to: localhost
+  become: false
+  register: frontend_prev_hash
+  ignore_errors: true
+
+- name: "frontend/build | Set build_needed fact"
+  ansible.builtin.set_fact:
+    frontend_build_needed: >-
+      {{ (frontend_prev_hash is failed) or
+         (frontend_prev_hash.content | b64decode | trim) != frontend_src_hash.stdout }}
+
+- name: "frontend/build | Install frontend npm dependencies"
+  ansible.builtin.command:
+    cmd: npm ci
+    chdir: "{{ playbook_dir }}/../frontend"
+  delegate_to: localhost
+  become: false
+  when: frontend_build_needed
+
+- name: "frontend/build | Build production assets (tsc + vite build)"
+  ansible.builtin.command:
+    cmd: npm run build
+    chdir: "{{ playbook_dir }}/../frontend"
+  environment:
+    NODE_ENV: production
+  delegate_to: localhost
+  become: false
+  changed_when: true
+  when: frontend_build_needed
+
+- name: "frontend/build | Save build hash to dist/"
+  ansible.builtin.copy:
+    content: "{{ frontend_src_hash.stdout }}\n"
+    dest: "{{ playbook_dir }}/../frontend/dist/.build_hash"
+  delegate_to: localhost
+  become: false
+  when: frontend_build_needed
+
+- name: "frontend/build | Verify dist/ was created"
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/../frontend/dist/index.html"
+  delegate_to: localhost
+  become: false
+  register: dist_check
+  failed_when: not dist_check.stat.exists

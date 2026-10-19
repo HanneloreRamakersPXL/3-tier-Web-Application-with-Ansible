@@ -1,0 +1,4 @@
+# ── Frontend-tier variables (AWS) ────────────────────────────
+
+nginx_conf_path: /etc/nginx/conf.d/cinevote.conf
+app_url: "http://{{ frontend_ip }}"

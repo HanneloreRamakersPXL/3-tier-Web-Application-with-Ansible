@@ -1,0 +1,21 @@
+---
+# Storage health verification — fails the play if the DB is not healthy.
+
+- name: "storage/health | Verify PostgreSQL service is active"
+  ansible.builtin.systemd:
+    name: "{{ pg_service_name }}"
+    state: started
+  check_mode: false
+  changed_when: false
+
+- name: "storage/health | Verify database responds to query"
+  ansible.builtin.command:
+    cmd: "psql -d {{ db_name }} -tAc 'SELECT COUNT(*) FROM schema_migrations;'"
+  become_user: postgres
+  register: db_health_query
+  changed_when: false
+  failed_when: db_health_query.rc != 0
+
+- name: "storage/health | Confirm applied migrations count"
+  ansible.builtin.debug:
+    msg: "Storage OK — {{ db_health_query.stdout.strip() }} migration(s) applied to database '{{ db_name }}'"

@@ -1,0 +1,189 @@
+---
+- name: "backend/deploy | Hash backend source files on control machine"
+  ansible.builtin.shell:
+    cmd: >-
+      find . -type f
+      -not -path '*/node_modules/*'
+      -not -path '*/dist/*'
+      -not -path '*/.env'
+      -not -name '*.log'
+      | sort | xargs sha256sum | sha256sum | awk '{print $1}'
+    chdir: "{{ playbook_dir }}/../backend"
+  delegate_to: localhost
+  become: false
+  register: backend_src_hash
+  changed_when: false
+
+- name: "backend/deploy | Hash storage source files on control machine"
+  ansible.builtin.shell:
+    cmd: >-
+      find . -type f
+      -not -path '*/node_modules/*'
+      -not -path '*/dist/*'
+      -not -name '*.log'
+      | sort | xargs sha256sum | sha256sum | awk '{print $1}'
+    chdir: "{{ playbook_dir }}/../storage"
+  delegate_to: localhost
+  become: false
+  register: storage_src_hash
+  changed_when: false
+
+- name: "backend/deploy | Read previous deploy hash from VM"
+  ansible.builtin.slurp:
+    src: "{{ backend_dir }}/.deploy_hash"
+  register: backend_prev_hash
+  ignore_errors: true
+
+- name: "backend/deploy | Set backend_deploy_needed fact"
+  ansible.builtin.set_fact:
+    backend_deploy_needed: >-
+      {{ (backend_prev_hash is failed) or
+         (backend_prev_hash.content | b64decode | trim) != (backend_src_hash.stdout ~ '-' ~ storage_src_hash.stdout) }}
+
+- name: "backend/deploy | Create SSH wrapper script for rsync (bastion required)"
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    content: |
+      #!/usr/bin/env bash
+      exec ssh \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -i ~/.ssh/id_ed25519 \
+        -o ProxyCommand='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_ed25519 -W %h:%p ec2-user@{{ frontend_ip }}' \
+        "$@"
+    dest: /tmp/cinevote-rsync-ssh
+    mode: "0755"
+  when: backend_deploy_needed and (backend_use_bastion | default(false))
+
+- name: "backend/deploy | Sync @cinevote/storage package source"
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../storage/"
+    dest: "{{ storage_src_dir }}/"
+    archive: true
+    checksum: true
+    delete: true
+    rsync_path: "sudo rsync"
+    rsync_opts: >-
+      {{ ['--exclude=node_modules', '--exclude=dist', '--exclude=*.log',
+          '--rsh=/tmp/cinevote-rsync-ssh']
+         if (backend_use_bastion | default(false)) else
+         ['--exclude=node_modules', '--exclude=dist', '--exclude=*.log'] }}
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Sync backend application source"
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../backend/"
+    dest: "{{ backend_dir }}/"
+    archive: true
+    checksum: true
+    delete: true
+    rsync_path: "sudo rsync"
+    rsync_opts: >-
+      {{ ['--exclude=node_modules', '--exclude=dist', '--exclude=.env',
+          '--exclude=*.log', '--exclude=coverage',
+          '--rsh=/tmp/cinevote-rsync-ssh']
+         if (backend_use_bastion | default(false)) else
+         ['--exclude=node_modules', '--exclude=dist', '--exclude=.env',
+          '--exclude=*.log', '--exclude=coverage'] }}
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Set source ownership to application group"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: "{{ app_group }}"
+    recurse: true
+    mode: "u=rwX,g=rX,o="
+  loop:
+    - "{{ backend_dir }}"
+    - "{{ storage_src_dir }}"
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Install @cinevote/storage dependencies"
+  ansible.builtin.command:
+    cmd: npm install --include=dev
+    chdir: "{{ storage_src_dir }}"
+  environment:
+    HOME: /root
+    npm_config_cache: /tmp/npm-cache
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Compile @cinevote/storage TypeScript"
+  ansible.builtin.command:
+    cmd: npm run build
+    chdir: "{{ storage_src_dir }}"
+  environment:
+    HOME: /root
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Install backend npm dependencies"
+  ansible.builtin.command:
+    cmd: npm install --include=dev
+    chdir: "{{ backend_dir }}"
+  environment:
+    HOME: /root
+    npm_config_cache: /tmp/npm-cache
+  when: backend_deploy_needed
+
+# npm creates a file: symlink to storage that fails at runtime (ERR_REQUIRE_ESM).
+# Physically copy the built files instead to avoid this.
+- name: "backend/deploy | Remove broken file: symlink for @cinevote/storage"
+  ansible.builtin.file:
+    path: "{{ backend_dir }}/node_modules/@cinevote/storage"
+    state: absent
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Create @cinevote/storage dist dir in node_modules"
+  ansible.builtin.file:
+    path: "{{ backend_dir }}/node_modules/@cinevote/storage/dist"
+    state: directory
+    mode: "0755"
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Copy storage dist/ into node_modules"
+  ansible.builtin.copy:
+    src: "{{ storage_src_dir }}/dist/"
+    dest: "{{ backend_dir }}/node_modules/@cinevote/storage/dist/"
+    remote_src: true
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Copy storage package.json into node_modules"
+  ansible.builtin.copy:
+    src: "{{ storage_src_dir }}/package.json"
+    dest: "{{ backend_dir }}/node_modules/@cinevote/storage/package.json"
+    remote_src: true
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Fix ownership on @cinevote/storage in node_modules"
+  ansible.builtin.file:
+    path: "{{ backend_dir }}/node_modules/@cinevote/storage"
+    state: directory
+    owner: root
+    group: "{{ app_group }}"
+    mode: "u=rwX,g=rX,o="
+    recurse: true
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Compile backend TypeScript to dist/"
+  ansible.builtin.command:
+    cmd: npm run build
+    chdir: "{{ backend_dir }}"
+  environment:
+    HOME: /root
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Save deploy hash to VM"
+  ansible.builtin.copy:
+    content: "{{ backend_src_hash.stdout }}-{{ storage_src_hash.stdout }}\n"
+    dest: "{{ backend_dir }}/.deploy_hash"
+    owner: root
+    group: "{{ app_group }}"
+    mode: "0640"
+  when: backend_deploy_needed
+
+- name: "backend/deploy | Verify dist/index.js was produced"
+  ansible.builtin.stat:
+    path: "{{ backend_dir }}/dist/index.js"
+  register: dist_check
+  failed_when: not dist_check.stat.exists

@@ -1,0 +1,14 @@
+---
+# Frontend role — install Nginx, build React app locally, deploy, configure.
+
+- name: "frontend | Install Nginx"
+  ansible.builtin.import_tasks: install.yml
+
+- name: "frontend | Build React SPA on control machine"
+  ansible.builtin.import_tasks: build.yml
+
+- name: "frontend | Deploy build artefacts and Nginx config"
+  ansible.builtin.import_tasks: deploy.yml
+
+- name: "frontend | Verify frontend health"
+  ansible.builtin.import_tasks: healthcheck.yml

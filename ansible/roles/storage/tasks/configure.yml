@@ -1,0 +1,38 @@
+---
+- name: "storage/configure | Deploy pg_hba.conf from template"
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "{{ pg_data_dir }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: "0600"
+    backup: true
+  notify: Reload postgresql
+
+- name: "storage/configure | Set listen_addresses = '*'"
+  ansible.builtin.lineinfile:
+    path: "{{ pg_data_dir }}/postgresql.conf"
+    regexp: "^#?\\s*listen_addresses"
+    line: "listen_addresses = '*'"
+    state: present
+    backup: true
+  notify: Restart postgresql
+
+- name: "storage/configure | Set max_connections = {{ pg_max_connections }}"
+  ansible.builtin.lineinfile:
+    path: "{{ pg_data_dir }}/postgresql.conf"
+    regexp: "^#?\\s*max_connections"
+    line: "max_connections = {{ pg_max_connections }}"
+    state: present
+  notify: Restart postgresql
+
+- name: "storage/configure | Set shared_buffers = {{ pg_shared_buffers }}"
+  ansible.builtin.lineinfile:
+    path: "{{ pg_data_dir }}/postgresql.conf"
+    regexp: "^#?\\s*shared_buffers"
+    line: "shared_buffers = {{ pg_shared_buffers }}"
+    state: present
+  notify: Restart postgresql
+
+- name: "storage/configure | Flush handlers (apply config before creating DB objects)"
+  ansible.builtin.meta: flush_handlers

@@ -1,0 +1,34 @@
+---
+# Install Nginx and configure firewall / SELinux for the frontend VM.
+
+- name: "frontend/install | Install Nginx"
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+- name: "frontend/install | Create Nginx web root for CineVote"
+  ansible.builtin.file:
+    path: "{{ frontend_webroot }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0755"
+
+- name: "frontend/install | Open port {{ frontend_port }}/tcp in firewall"
+  ansible.posix.firewalld:
+    port: "{{ frontend_port }}/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: "frontend/install | Allow Nginx to make outbound connections (SELinux)"
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+
+- name: "frontend/install | Enable and start Nginx"
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: true

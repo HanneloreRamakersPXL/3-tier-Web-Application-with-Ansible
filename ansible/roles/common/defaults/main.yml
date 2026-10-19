@@ -1,0 +1,13 @@
+---
+# Common role defaults — override in group_vars or host_vars as needed
+common_packages:
+  - curl
+  - wget
+  - tar
+  - git
+  - rsync
+  - firewalld
+  - python3
+  - policycoreutils-python-utils   # semanage, restorecon (SELinux)
+
+system_timezone: UTC

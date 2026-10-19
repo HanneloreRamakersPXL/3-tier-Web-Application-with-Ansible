@@ -1,0 +1,6 @@
+---
+- name: Restart cinevote-backend
+  ansible.builtin.systemd:
+    name: "{{ backend_service_name }}"
+    state: restarted
+    daemon_reload: true

@@ -1,0 +1,77 @@
+---
+# Backend health verification.
+# All checks use 127.0.0.1 (loopback) — firewalld does not filter the lo
+# interface, so these work regardless of the external firewall rules.
+
+- name: "backend/health | Verify service is active before probing port"
+  ansible.builtin.command:
+    cmd: systemctl is-active cinevote-backend
+  register: service_active
+  changed_when: false
+  failed_when: false
+
+- name: "backend/health | Show recent journal on service failure"
+  ansible.builtin.command:
+    cmd: journalctl -u cinevote-backend -n 40 --no-pager
+  register: journal_output
+  changed_when: false
+  when: service_active.stdout != 'active'
+
+- name: "backend/health | Fail with journal output when service is not active"
+  ansible.builtin.fail:
+    msg: |
+      cinevote-backend is {{ service_active.stdout }} (expected: active).
+      Last 40 journal lines:
+      {{ journal_output.stdout }}
+  when: service_active.stdout != 'active'
+
+- name: "backend/health | Port and API health checks"
+  block:
+    - name: "backend/health | Wait for port {{ backend_port }} to accept connections (loopback)"
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ backend_port }}"
+        timeout: 30
+        state: started
+
+    - name: "backend/health | Poll /api/health until db=connected"
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ backend_port }}/api/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_response
+      retries: 12
+      delay: 5
+      until: >
+        health_response.status == 200 and
+        health_response.json.status == 'ok' and
+        health_response.json.db == 'connected'
+      changed_when: false
+
+    - name: "backend/health | Assert database is connected"
+      ansible.builtin.assert:
+        that:
+          - health_response.json.db == 'connected'
+        fail_msg: >
+          Backend health check FAILED: database is '{{ health_response.json.db }}'.
+          Check DB_HOST/DB_PASSWORD in {{ backend_dir }}/.env and verify
+          PostgreSQL is reachable from {{ backend_ip }}.
+        success_msg: >
+          Backend healthy — API {{ health_response.json.version }},
+          DB connected, uptime {{ health_response.json.uptime }}s
+
+  rescue:
+    - name: "backend/health | Capture journal after health check failure"
+      ansible.builtin.command:
+        cmd: journalctl -u cinevote-backend -n 60 --no-pager
+      register: journal_on_failure
+      changed_when: false
+
+    - name: "backend/health | Display journal"
+      ansible.builtin.debug:
+        var: journal_on_failure.stdout_lines
+
+    - name: "backend/health | Fail after showing journal"
+      ansible.builtin.fail:
+        msg: "Backend health check failed — see journal output above."

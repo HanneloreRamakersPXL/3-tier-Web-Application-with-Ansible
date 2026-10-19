@@ -1,0 +1,30 @@
+---
+# Frontend health verification — confirms Nginx is serving the React SPA.
+
+- name: "frontend/health | Wait for Nginx port {{ frontend_port }} to open"
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ frontend_port }}"
+    timeout: 30
+    state: started
+
+- name: "frontend/health | Poll frontend URL for HTTP 200"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ frontend_port }}/"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: frontend_response
+  retries: 6
+  delay: 5
+  until: frontend_response.status == 200
+  changed_when: false
+
+- name: "frontend/health | Assert response contains React app marker"
+  ansible.builtin.assert:
+    that:
+      - "'<!DOCTYPE html>' in frontend_response.content or '<html' in frontend_response.content"
+    fail_msg: >
+      Frontend health check FAILED: expected HTML from {{ frontend_ip }}:{{ frontend_port }}
+      but got unexpected content. Check Nginx config at {{ nginx_conf_path }}.
+    success_msg: "Frontend healthy — Nginx serving React SPA at http://{{ frontend_ip }}:{{ frontend_port }}"

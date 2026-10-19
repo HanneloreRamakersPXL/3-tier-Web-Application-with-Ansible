@@ -1,0 +1,70 @@
+---
+- name: "storage/install | Add PGDG repository"
+  ansible.builtin.dnf:
+    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when: ansible_distribution != 'Amazon'
+
+- name: "storage/install | Disable built-in postgresql DNF module (conflicts with PGDG)"
+  ansible.builtin.command:
+    cmd: dnf module disable postgresql -y
+  register: pg_module_disable
+  changed_when: "'Disabling modules' in pg_module_disable.stdout"
+  when: ansible_distribution != 'Amazon'
+
+- name: "Check PostgreSQL packages"
+  become: true
+  ansible.builtin.command:
+    argv:
+      - rpm
+      - -q
+      - openssh-server
+      - openssh-clients
+      - postgresql-server
+      - postgresql-contrib
+      - python3-psycopg2
+      - rsyslog
+  register: storage_package_check
+  changed_when: false
+  failed_when: false
+  tags: [storage]
+
+- name: "storage/install | Install PostgreSQL {{ pg_version }} server packages"
+  ansible.builtin.dnf:
+    name:
+      - "postgresql{{ pg_version }}-server"
+      - "postgresql{{ pg_version }}"
+      - "postgresql{{ pg_version }}-contrib"
+    state: present
+
+- name: "storage/install | Check whether PostgreSQL cluster is already initialized"
+  ansible.builtin.stat:
+    path: "{{ pg_data_dir }}/PG_VERSION"
+  register: pg_cluster_initialized
+
+- name: "storage/install | Initialize PostgreSQL data cluster (PGDG / RHEL)"
+  ansible.builtin.command:
+    cmd: "/usr/pgsql-{{ pg_version }}/bin/postgresql-{{ pg_version }}-setup initdb"
+  when: not pg_cluster_initialized.stat.exists and ansible_distribution != 'Amazon'
+  changed_when: true
+
+- name: "storage/install | Initialize PostgreSQL data cluster (Amazon Linux)"
+  ansible.builtin.command:
+    cmd: "/usr/bin/postgresql-setup --initdb"
+  when: not pg_cluster_initialized.stat.exists and ansible_distribution == 'Amazon'
+  changed_when: true
+
+- name: "storage/install | Enable and start PostgreSQL service"
+  ansible.builtin.systemd:
+    name: "{{ pg_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: "storage/install | Open PostgreSQL port in firewall (backend VM only)"
+  ansible.posix.firewalld:
+    rich_rule: "rule family=ipv4 source address={{ backend_ip }}/32 port port={{ db_port }} protocol=tcp accept"
+    state: enabled
+    permanent: true
+    immediate: true
